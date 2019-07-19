@@ -1,0 +1,28 @@
+{
+  "name": "word-to-html",
+  "version": "1.1.0",
+  "description": "convert docx files to html",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "word",
+    "html",
+    "node"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BUPTlhuanyu/word-to-html"
+  },
+  "author": "lhuanyu",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.4.13",
+    "jsdom": "^15.1.1"
+  },
+  "files": [
+    "src/**/*.js",
+    "README.md"
+  ]
+}

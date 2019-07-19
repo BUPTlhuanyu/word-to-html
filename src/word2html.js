@@ -1,0 +1,151 @@
+/**
+ * 获取元素下某一层某个tagName的所有元素
+ * @param {*} dom 
+ */
+var getDirectDomsByTagName = function(dom, tagName){
+    var childs = Array.prototype.slice.call(dom.children);
+    var doms = childs.filter((item,index)=>{
+        return item.tagName === tagName
+    })
+    return doms
+}
+
+// amd-zip将docx格式的文件转换成xml的规则是：
+// table规则：
+// <w:tbl></w:tbl>表示整个表格                                                          tblFn:需要<table>包裹
+// <w:tr></w:tr>表示表格的一行                                                          trFn:需要<tr>包裹
+// <w:tc></w:tc>表示表格某一行的一列                                                    tcFn:需要<td></td>包裹
+// 在<w:tc></w:tc>这一列中，对应的word中有多少个回车就会生成多少个<w:p>，
+// 在<w:p></w:p>中，对应的word中有多少个软回车（向下的箭头↓），就会有多少<w:r></w:r>
+// 一般？：在<w:r></w:r>中的<w:t></w:t>就包裹了需要的文字内容
+// 这里需要注意的一个问题是：特殊符号比如上标也会单独成为一个<w:r></w:r>
+
+// 总之遍历到标签<w:t></w:t>则表示结束
+
+/**
+ * 
+ * @param {*} tblDom 处理<w:tbl>标签对应的DOM
+ * @return {string} tblText 返回table标签对应的html字符串  
+ */
+var tblFn = function(tblDom){
+    //
+    let tblLeft = `<table><tbody>`
+    let tblRight = `</tbody></table>`
+    let tblText = tblLeft;
+
+    let trArray = getDirectDomsByTagName(tblDom,'w:tr'), len = trArray.length;
+    for(let i = 0;i<len; i++){
+        let tr = trArray[i];
+        tblText = tblText + trFn(tr);
+    }
+
+    tblText = tblText + tblRight;
+    return tblText; 
+}
+
+/**
+ * @param trDom: 处理<w:tr>标签对应的DOM
+ * @return trText： 字符串，表示的是表格的一行的html字符串
+ */
+var trFn = function(trDom){
+    let trStart = `<tr>`, 
+        trEnd = `</tr>`, 
+        trText = trStart;
+    let tcArray = getDirectDomsByTagName(trDom,'w:tc'), len = tcArray.length;
+    for(let i = 0;i<len; i++){
+        let tc = tcArray[i];
+        trText = trText + tcFn(tc);
+    }
+    trText = trText + trEnd;
+    return trText;
+}
+
+/**
+ * @param tcDom: 处理<w:tc>标签对应的DOM
+ * @return tcText： 字符串，表示的是表格的一行的html字符串
+ */
+var tcFn = function(tcDom){
+
+    let tdStart = `<td>`,
+        tdEnd = `</td>`,
+        tcText = tdStart;
+    
+    tcText = tcText + wanderDom(tcDom) + tdEnd;
+
+    return tcText;
+}
+
+/**
+ * @param {*} rArray 数组，<w:r>标签对应的DOM组成的数组
+ * @return {string} textContent 返回table标签对应的html字符串  
+ */
+var rFn = function(rArray){
+    var br = `<br>`,textContent = '',rTextArray = [];
+    // In browser
+    // for(let i =0; i<rArray.length;i++){
+    //     console.log(rArray.length)
+    //     var r = rArray[i];
+    //     var rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
+    //     var rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
+    //     var t = r.getElementsByTagName('w:t')[0];
+    //     let tText = `<span style="font-family:${rFontFamily};font-size:${rFontSize/100}rem">` +
+    //                 t.textContent + 
+    //                 `</span>`;
+    //     rTextArray.push(tText);
+    // }
+    for(let i =0; i<rArray.length;i++){
+        var tArray = rArray[i].getElementsByTagName('w:t');
+        let tText = '';
+        for(let j=0;j<tArray.length;j++){
+            tText = tText + tArray[j].textContent;
+        }
+        rTextArray.push(tText);
+    }
+    textContent = rTextArray.join('');
+    return textContent
+}
+
+/**
+ * 无论是p还是table最终还是会到这个函数，用于取出最后的文字内容
+ * @param {*} pDom 处理<w:p>标签对应的DOM,这个标签和tbl是互斥的
+ * @return {string} htmlStr 返回table标签对应的html字符串  
+ */
+var pFn = function(pDom){
+    let rArray = getDirectDomsByTagName(pDom,'w:r');
+    return '<p>'+rFn(rArray)+'</p>';
+}
+
+/**
+ * 
+ * @param {*} dom DOM子树根节点
+ * @return htmlStr 字符串 
+ */
+var wanderDom = function(dom){
+    let htmlStr = '',childrens = dom.children,len = childrens.length;
+    for(let i=0; i<len;i++){
+        let children = childrens[i];
+        let tagName = children.tagName;
+        switch(tagName){
+            case 'w:tbl': htmlStr= htmlStr + tblFn(children) ;break;
+            case 'w:p': htmlStr= htmlStr + pFn(children) ;break;
+            default:break ;
+        }
+    }
+    return htmlStr;
+}
+
+
+
+/**
+ * 
+ * @param {*} xmlDoc 整个XML的DOM树
+ * @return htmlStr 字符串 
+ */
+let convert = function(xmlDoc){
+    let dom = xmlDoc.getElementsByTagName('w:body')[0];
+    return wanderDom(dom);
+}
+
+module.exports={
+    convert
+}
