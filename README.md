@@ -19,7 +19,7 @@ yarn add word-to-html
 
 ```
 var path = require('path');
-var word2html = require('word2html');
+var word2html = require('word-to-html');
 //Word document's absolute path
 var absPath = path.join(__dirname,'example.docx');
 word2html(absPath)
