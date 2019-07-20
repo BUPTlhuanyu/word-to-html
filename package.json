@@ -1,6 +1,6 @@
 {
   "name": "word-to-html",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "convert docx files to html",
   "main": "src/index.js",
   "scripts": {
