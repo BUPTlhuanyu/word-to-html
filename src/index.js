@@ -1,4 +1,5 @@
-var template = require('./template.js')
+var templateFormate = require('./template.js')
+var template;
 //解压缩word文件
 var admZip = require('adm-zip');
 var fs = require('fs');
@@ -20,6 +21,10 @@ var main = function(str){
     return convert(loadXML(str))
 }
 
+/**
+ * 
+ * @param {*} abspath 字符串 绝对路径
+ */
 var beginConvert = function(abspath){
     if(path.extname(abspath)!=='.docx'){
       console.log(`can not convert ${abspath}, wrong ext !`)
@@ -51,13 +56,19 @@ var beginConvert = function(abspath){
   });
 }
 
-var word2html = function(abspath){
+/**
+ * 
+ * @param {*} abspath 绝对路径字符串或者绝对路径数组
+ * @param {*} options 暂时只支持表格td的内容水平垂直对齐的配置，比如{tdTextAlign:'center',tdVerticalAlign:'top'}
+ */
+var word2html = function(abspath,options){
+    template = templateFormate(options)
     if(Array.isArray(abspath)){
       abspath.map((item)=>{
-           beginConvert(item);
+           beginConvert(item,options);
         });
     }else if(typeof abspath === 'string'){
-      beginConvert(abspath);
+      beginConvert(abspath,options);
     }
 }
 

@@ -23,14 +23,27 @@ npm i word-to-html --save-dev
 ```
 yarn add word-to-html
 ```
+
+## **api:**word2html(absPath, options)
+absPath: string | Array<string>  
+
+absPath is your file's absolute path
+
+options: {tdTextAlign:string,tdVerticalAlign:string}
+
+tdTextAlign controls the <td> tag's text-align
+
+tdVerticalAlign controls the <td> tag's vertical-align
+
+
 ## **Usage in nodejs**
 
 ```
 var path = require('path');
-var word2html = require('word-to-html');
+var word2html = require('../src/index.js');
 //Word document's absolute path
-var absPath = path.join(__dirname,'example.docx');
-word2html(absPath)
+var absPath = path.join(__dirname,'test.docx');
+word2html(absPath,{tdVerticalAlign:'top'})
 ```
 the html generated in your WorkSpace.
 
