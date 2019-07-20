@@ -71,7 +71,7 @@ var trFn = function(trDom,rNum,trArray){
  */
 var tcFn = function(tcDom,rNum,cNum,trArray){
     let {colspan, vMerge, hasT} = getTcDomOptions(tcDom);
-    if(!hasT){
+    if(vMerge === '1' &&!hasT){
         return ''
     }
     // 合并行
