@@ -4,7 +4,7 @@ you can use the tool convert tables with merged cells and nested tables to html 
 Beyond that, you can convert words with different font-family or font-size in a line to html string in **chrome**.
 
 ## **table example**
-[example.html(mobile)](https://github.com/BUPTlhuanyu/word-to-html/blob/master/test/browser/template.jpg)
+[example.html(mobile)](https://github.com/BUPTlhuanyu/word-to-html/blob/master/test/browser/example.jpg)
 
 ## **attention**
 If a line of words have different font-family or font-size in your .docx, it can not convert
