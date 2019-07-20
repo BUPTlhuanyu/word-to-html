@@ -1,23 +1,23 @@
-var templateFormate = require('./template.js')
-var template;
+let templateFormate = require('./template.js')
+let template;
 //解压缩word文件
-var admZip = require('adm-zip');
-var fs = require('fs');
-var path = require('path');
-var {convert} = require('./word2html.js');
+let admZip = require('adm-zip');
+let fs = require('fs');
+let path = require('path');
+let {convert} = require('./word2html.js');
 
 const jsdom = require("jsdom")
 const { JSDOM } = jsdom
 global.DOMParser = new JSDOM().window.DOMParser
 
-var loadXML  =   function(xmlString){
-    var  xmlDoc = null ; 
+let loadXML  =   function(xmlString){
+    let  xmlDoc = null ; 
     domParser  =   new DOMParser();
     xmlDoc  =  domParser.parseFromString(xmlString,  "application/xml" );
     return  xmlDoc;
 }
 
-var main = function(str){
+let main = function(str){
     return convert(loadXML(str))
 }
 
@@ -25,7 +25,7 @@ var main = function(str){
  * 
  * @param {*} abspath 字符串 绝对路径
  */
-var beginConvert = function(abspath){
+let beginConvert = function(abspath){
     if(path.extname(abspath)!=='.docx'){
       console.log(`can not convert ${abspath}, wrong ext !`)
       return 
@@ -42,13 +42,13 @@ var beginConvert = function(abspath){
       //解压缩
       const zip = new admZip(abspath);
       //将document.xml(解压缩后得到的文件)读取为text内容
-      var contentXml = zip.readAsText("word/document.xml");
-      var len = abspath.length-1;
-      var name = abspath.slice(0,len-4) + ".html"
+      let contentXml = zip.readAsText("word/document.xml");
+      let len = abspath.length-1;
+      let name = abspath.slice(0,len-4) + ".html"
       // console.log(name,'is ok')
-      var res = main(contentXml);
+      let res = main(contentXml);
       // 获取res
-      var htmlStr = template.tl + res + template.tr; 
+      let htmlStr = template.tl + res + template.tr; 
       fs.writeFile(name,htmlStr,function(err){
         if(err)throw err
         console.log(`${process.cwd()+path.delimiter+name} is ok`)  
@@ -61,7 +61,7 @@ var beginConvert = function(abspath){
  * @param {*} abspath 绝对路径字符串或者绝对路径数组
  * @param {*} options 暂时只支持表格td的内容水平垂直对齐的配置，比如{tdTextAlign:'center',tdVerticalAlign:'top'}
  */
-var word2html = function(abspath,options){
+let word2html = function(abspath,options = {}){
     template = templateFormate(options)
     if(Array.isArray(abspath)){
       abspath.map((item)=>{

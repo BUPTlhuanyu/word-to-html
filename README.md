@@ -24,7 +24,7 @@ npm i word-to-html --save-dev
 yarn add word-to-html
 ```
 
-## **api:**word2html(absPath, options)
+## **api in nodejs:** word2html(absPath [,options])
 absPath: string | Array<string>  
 
 absPath is your file's absolute path

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no,viewport-fit=cover"> <title></title> <script> (function (doc, win) { var docEl = doc.documentElement, resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize', recalc = function () { var clientWidth = docEl.clientWidth; if (!clientWidth) return; if (clientWidth >= 640) { docEl.style.fontSize = '100px'; } else { docEl.style.fontSize = 100 * (clientWidth / 750) + 'px'; var div = document.createElement('div'); div.style.width = '1.4rem'; div.style.height = '0'; document.body.appendChild(div); var ideal = 140 * clientWidth / 750; var rmd = (div.clientWidth / ideal); if (rmd > 1.2 || rmd < 0.8) { docEl.style.fontSize = 100 * (clientWidth / 750) / rmd + 'px'; } document.body.removeChild(div); } }; if (!doc.addEventListener) return; win.addEventListener(resizeEvt, recalc, false); doc.addEventListener('DOMContentLoaded', recalc, false); })(document, window); </script>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no,viewport-fit=cover"> <title></title> <script> (function (doc, win) { let docEl = doc.documentElement, resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize', recalc = function () { let clientWidth = docEl.clientWidth; if (!clientWidth) return; if (clientWidth >= 640) { docEl.style.fontSize = '100px'; } else { docEl.style.fontSize = 100 * (clientWidth / 750) + 'px'; let div = document.createElement('div'); div.style.width = '1.4rem'; div.style.height = '0'; document.body.appendChild(div); let ideal = 140 * clientWidth / 750; let rmd = (div.clientWidth / ideal); if (rmd > 1.2 || rmd < 0.8) { docEl.style.fontSize = 100 * (clientWidth / 750) / rmd + 'px'; } document.body.removeChild(div); } }; if (!doc.addEventListener) return; win.addEventListener(resizeEvt, recalc, false); doc.addEventListener('DOMContentLoaded', recalc, false); })(document, window); </script>
 	<style>
 		body,
 		html,
@@ -20,7 +20,7 @@
 		td {
 			border: 1px solid #000;
 			text-align: left;
-			vertical-align: middle;
+			vertical-align: top;
 			font-family: PingFang-SC-Medium;
 			font-size: 0.28rem;
 			color: #848484;
@@ -35,5 +35,5 @@
 			padding: 0.3rem
 		}
 	</style>
-</head>
-<body><noscript>You need to enable JavaScript to run this app.</noscript><div class="container"><table><tbody><tr><td colspan=2 rowspan=3><p>级别</p></td><td colspan=2 ><p>低视力及盲目分级标准</p></td></tr><tr><td colspan=2 ><p>最好矫正视力</p></td></tr><tr><td  ><p>最好矫正视力低于</p></td><td  ><p>最低矫正视力等于或优于</p></td></tr><tr><td  rowspan=2><p>低视力</p></td><td  ><p>1</p></td><td  rowspan=2><p>0.3</p><p>0.1</p></td><td  ><table><tbody><tr><td  ><p>1</p></td><td  ><p>2</p></td></tr><tr><td  ><p>3</p></td><td  ><p>4</p></td></tr><tr><td  ><p>5</p></td><td  ><p>6</p></td></tr><tr><td  ><p>7</p></td><td  ><p>8</p></td></tr></tbody></table><p></p></td></tr><tr><td  ><p>2</p></td><td  ><p>0.05（三米指数）</p></td></tr><tr><td  rowspan=3><p>盲目</p></td><td  ><p>3</p></td><td  ><p>0.05</p></td><td  ><p>0.02（一米指数）</p></td></tr><tr><td  ><p>4</p></td><td  ><p>0.02</p></td><td  ><p>光感</p></td></tr><tr><td  ><p>5</p></td><td colspan=2 ><p>无光感</p></td></tr></tbody></table><p>啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊</p><p>啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊</p></div></html>
+	</head>
+	<body><noscript>You need to enable JavaScript to run this app.</noscript><div class="container"><table><tbody><tr><td colspan=2 rowspan=3><p>级别</p></td><td colspan=2 ><p>低视力及盲目分级标准</p></td></tr><tr><td colspan=2 ><p>最好矫正视力</p></td></tr><tr><td  ><p>最好矫正视力低于</p></td><td  ><p>最低矫正视力等于或优于</p></td></tr><tr><td  rowspan=2><p>低视力</p></td><td  ><p>1</p></td><td  rowspan=2><p>0.3</p><p>0.1</p></td><td  ><table><tbody><tr><td  ><p>1</p></td><td  ><p>2</p></td></tr><tr><td  ><p>3</p></td><td  ><p>4</p></td></tr><tr><td  ><p>5</p></td><td  ><p>6</p></td></tr><tr><td  ><p>7</p></td><td  ><p>8</p></td></tr></tbody></table><p></p></td></tr><tr><td  ><p>2</p></td><td  ><p>0.05（三米指数）</p></td></tr><tr><td  rowspan=3><p>盲目</p></td><td  ><p>3</p></td><td  ><p>0.05</p></td><td  ><p>0.02（一米指数）</p></td></tr><tr><td  ><p>4</p></td><td  ><p>0.02</p></td><td  ><p>光感</p></td></tr><tr><td  ><p>5</p></td><td colspan=2 ><p>无光感</p></td></tr></tbody></table><p>啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊</p><p>啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊</p></div></html>

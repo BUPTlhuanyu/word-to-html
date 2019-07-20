@@ -2,9 +2,9 @@
  * 获取元素下某一层某个tagName的所有元素
  * @param {*} dom 
  */
-var getDirectDomsByTagName = function(dom, tagName){
-    var childs = Array.prototype.slice.call(dom.children);
-    var doms = childs.filter((item,index)=>{
+let getDirectDomsByTagName = function(dom, tagName){
+    let childs = Array.prototype.slice.call(dom.children);
+    let doms = childs.filter((item,index)=>{
         return item.tagName === tagName
     })
     return doms
@@ -27,7 +27,7 @@ var getDirectDomsByTagName = function(dom, tagName){
  * @param {*} tblDom 处理<w:tbl>标签对应的DOM
  * @return {string} tblText 返回table标签对应的html字符串  
  */
-var tblFn = function(tblDom){
+let tblFn = function(tblDom){
     //
     let tblLeft = `<table><tbody>`
     let tblRight = `</tbody></table>`
@@ -49,7 +49,7 @@ var tblFn = function(tblDom){
  * @param trArray:表的所有行trArray
  * @return trText： 字符串，表示的是表格的一行的html字符串
  */
-var trFn = function(trDom,rNum,trArray){
+let trFn = function(trDom,rNum,trArray){
     let trStart = `<tr>`, 
         trEnd = `</tr>`, 
         trText = trStart;
@@ -69,7 +69,7 @@ var trFn = function(trDom,rNum,trArray){
  * @param trArray:表的所有行trArray
  * @return tcText： 字符串，表示的是表格的一行的html字符串
  */
-var tcFn = function(tcDom,rNum,cNum,trArray){
+let tcFn = function(tcDom,rNum,cNum,trArray){
     let {colspan, vMerge, hasT} = getTcDomOptions(tcDom);
     if(vMerge === '1' &&!hasT){
         return ''
@@ -104,7 +104,7 @@ var tcFn = function(tcDom,rNum,cNum,trArray){
  * @param tcDom: 处理<w:tc>标签对应的DOM
  * @return ： combinations:{colspan, vMerge, hasT} 对象，表示的是表格的一行的html字符串
  */
-var getTcDomOptions = function(tcDom){
+let getTcDomOptions = function(tcDom){
     let tcPrDom = getDirectDomsByTagName(tcDom,'w:tcPr')[0];
     let gridSpanDom = getDirectDomsByTagName(tcPrDom,'w:gridSpan')[0],
         vMergeDom = getDirectDomsByTagName(tcPrDom,'w:vMerge')[0],
@@ -123,14 +123,14 @@ var getTcDomOptions = function(tcDom){
  * @param {*} rArray 数组，<w:r>标签对应的DOM组成的数组
  * @return {string} textContent 返回table标签对应的html字符串  
  */
-var rFn = function(rArray){
-    var br = `<br>`,textContent = '',rTextArray = [];
+let rFn = function(rArray){
+    let br = `<br>`,textContent = '',rTextArray = [];
     // In browser
     // for(let i =0; i<rArray.length;i++){
-    //     var r = rArray[i];
-    //     var rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
-    //     var rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
-    //     var t = r.getElementsByTagName('w:t')[0];
+    //     let r = rArray[i];
+    //     let rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
+    //     let rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
+    //     let t = r.getElementsByTagName('w:t')[0];
     //     let tText = `<span style="font-family:${rFontFamily};font-size:${rFontSize/100}rem">` +
     //                 t.textContent + 
     //                 `</span>`;
@@ -139,7 +139,7 @@ var rFn = function(rArray){
 
     // in nodejs
     for(let i =0; i<rArray.length;i++){
-        var tArray = rArray[i].getElementsByTagName('w:t');
+        let tArray = rArray[i].getElementsByTagName('w:t');
         let tText = '';
         for(let j=0;j<tArray.length;j++){
             tText = tText + tArray[j].textContent;
@@ -155,7 +155,7 @@ var rFn = function(rArray){
  * @param {*} pDom 处理<w:p>标签对应的DOM,这个标签和tbl是互斥的
  * @return {string} htmlStr 返回table标签对应的html字符串  
  */
-var pFn = function(pDom){
+let pFn = function(pDom){
     let rArray = getDirectDomsByTagName(pDom,'w:r');
     return '<p>'+rFn(rArray)+'</p>';
 }
@@ -165,7 +165,7 @@ var pFn = function(pDom){
  * @param {*} dom DOM子树根节点
  * @return htmlStr 字符串 
  */
-var wanderDom = function(dom){
+let wanderDom = function(dom){
     let htmlStr = '',childrens = dom.children,len = childrens.length;
     for(let i=0; i<len;i++){
         let children = childrens[i];
