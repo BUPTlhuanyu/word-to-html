@@ -194,18 +194,18 @@ details in my [github](https://github.com/BUPTlhuanyu)
          * @return {string} textContent 返回table标签对应的html字符串  
          */
         var rFn = function(rArray){
-    var br = `<br>`,textContent = '',rTextArray = [];
-        // In browser
-         for(let i =0; i<rArray.length;i++){
-             var r = rArray[i];
-             var rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
-             var rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
-             var t = r.getElementsByTagName('w:t')[0];
-             let tText = `<span style="font-family:${rFontFamily};font-size:${rFontSize/100}rem">` +
-                         t.textContent + 
-                         `</span>`;
-             rTextArray.push(tText);
-         }
+            var br = `<br>`,textContent = '',rTextArray = [];
+                // In browser
+                for(let i =0; i<rArray.length;i++){
+                    var r = rArray[i];
+                    var rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
+                    var rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
+                    var t = r.getElementsByTagName('w:t')[0];
+                    let tText = `<span style="font-family:${rFontFamily};font-size:${rFontSize/100}rem">` +
+                                t.textContent + 
+                                `</span>`;
+                    rTextArray.push(tText);
+                }
         textContent = rTextArray.join('');
         return textContent
     }
