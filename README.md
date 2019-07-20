@@ -1,6 +1,6 @@
 # word-to-html 
-https://img.shields.io/github/license/BUPTlhuanyu/word-to-html.svg
-https://img.shields.io/badge/node-%3Ev9.10.0-green.svg
+![](https://img.shields.io/github/license/BUPTlhuanyu/word-to-html.svg)
+![](https://img.shields.io/badge/node-%3Ev9.10.0-green.svg)
 
 A tiny tool to convert Microsoft Word document to HTML in **Nodejs** and in **chrome**,
 you can use the tool convert tables with merged cells and nested tables to html file in **Nodejs** or **chrome**, the online tool [wordhtml](https://wordhtml.com/) can not do this.
