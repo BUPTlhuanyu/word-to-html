@@ -39,7 +39,7 @@
             return  xmlDoc;
         }
         
-         getDirectDomsByTagName = function(dom, tagName){
+        var getDirectDomsByTagName = function(dom, tagName){
             var childs = Array.prototype.slice.call(dom.children);
             var doms = childs.filter((item,index)=>{
                 return item.tagName === tagName
@@ -64,7 +64,7 @@
          * @param {*} tblDom 处理<w:tbl>标签对应的DOM
          * @return {string} tblText 返回table标签对应的html字符串  
          */
-         tblFn = function(tblDom){
+        var tblFn = function(tblDom){
             //
             let tblLeft = `<table><tbody>`
             let tblRight = `</tbody></table>`
@@ -73,7 +73,7 @@
             let trArray = getDirectDomsByTagName(tblDom,'w:tr'), len = trArray.length;
             for(let i = 0;i<len; i++){
                 let tr = trArray[i];
-                tblText = tblText + trFn(tr);
+                tblText = tblText + trFn(tr,i,trArray);
             }
         
             tblText = tblText + tblRight;
@@ -82,16 +82,18 @@
         
         /**
          * @param trDom: 处理<w:tr>标签对应的DOM
+         * @param rNum:trDom所处的trArray的第几行
+         * @param trArray:表的所有行trArray
          * @return trText： 字符串，表示的是表格的一行的html字符串
          */
-         trFn = function(trDom){
+        var trFn = function(trDom,rNum,trArray){
             let trStart = `<tr>`, 
                 trEnd = `</tr>`, 
                 trText = trStart;
             let tcArray = getDirectDomsByTagName(trDom,'w:tc'), len = tcArray.length;
             for(let i = 0;i<len; i++){
                 let tc = tcArray[i];
-                trText = trText + tcFn(tc);
+                trText = trText + tcFn(tc,rNum, i,trArray);
             }
             trText = trText + trEnd;
             return trText;
@@ -99,11 +101,34 @@
         
         /**
          * @param tcDom: 处理<w:tc>标签对应的DOM
+         * @param rNum:trDom所处的trArray的第几行
+         * @param cNum: 传入的tcDom处于tr中tcArray的第几个，即第几列
+         * @param trArray:表的所有行trArray
          * @return tcText： 字符串，表示的是表格的一行的html字符串
          */
-         tcFn = function(tcDom){
-        
-            let tdStart = `<td>`,
+        var tcFn = function(tcDom,rNum,cNum,trArray){
+            let {colspan, vMerge, hasT} = getTcDomOptions(tcDom);
+            if(!hasT){
+                return ''
+            }
+            // 合并行
+            let rowspan;
+            if(vMerge === 'restart'){
+                let len = trArray.length;
+                rowspan =1;
+                for(let n = rNum+1;n<len;n++){
+                    let  tcArray = getDirectDomsByTagName(trArray[n],'w:tc')
+                    if(tcArray.length-1 < cNum) break;
+                    let tcPrDom = getDirectDomsByTagName(tcArray[cNum],'w:tcPr')[0];
+                    let vMergeDom = getDirectDomsByTagName(tcPrDom,'w:vMerge')[0];
+                    if(vMergeDom && vMergeDom.getAttribute('w:val')!=='restart'){
+                        rowspan++ 
+                    }else{
+                        break;
+                    }
+                }
+            } 
+            let tdStart = `<td ${colspan?`colspan=${colspan}`:''} ${rowspan?`rowspan=${rowspan}`:''}>`, //合并列
                 tdEnd = `</td>`,
                 tcText = tdStart;
             
@@ -113,31 +138,51 @@
         }
         
         /**
+         * @param tcDom: 处理<w:tc>标签对应的DOM
+         * @return ： combinations:{colspan, vMerge, hasT} 对象，表示的是表格的一行的html字符串
+         */
+        var getTcDomOptions = function(tcDom){
+            let tcPrDom = getDirectDomsByTagName(tcDom,'w:tcPr')[0];
+            let gridSpanDom = getDirectDomsByTagName(tcPrDom,'w:gridSpan')[0],
+                vMergeDom = getDirectDomsByTagName(tcPrDom,'w:vMerge')[0],
+                tDom = tcDom.getElementsByTagName('w:t');
+            let colspan = gridSpanDom?gridSpanDom.getAttribute('w:val'):'';
+            let vMerge = vMergeDom ?
+                            vMergeDom.getAttribute('w:val') ? vMergeDom.getAttribute('w:val') : '1'
+                            :
+                            '' ;
+            let hasT = tDom.length?true:false;
+            return {colspan,vMerge, hasT}
+        }
+        
+        
+        /**
          * @param {*} rArray 数组，<w:r>标签对应的DOM组成的数组
          * @return {string} textContent 返回table标签对应的html字符串  
          */
-         rFn = function(rArray){
-            var br = `<br>`,textContent = '',rTextArray = [];
-            for(let i =0; i<rArray.length;i++){
-                var r = rArray[i];
-                var rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
-                var rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
-                var t = r.getElementsByTagName('w:t')[0];
-                let tText = `<span style="font-family:${rFontFamily};font-size:${rFontSize/100}rem">` +
-                            t.textContent + 
-                            `</span>`;
-                rTextArray.push(tText);
-            }
-            textContent = rTextArray.join('');
-            return textContent
-        }
+        var rFn = function(rArray){
+    var br = `<br>`,textContent = '',rTextArray = [];
+        // In browser
+         for(let i =0; i<rArray.length;i++){
+             var r = rArray[i];
+             var rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
+             var rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
+             var t = r.getElementsByTagName('w:t')[0];
+             let tText = `<span style="font-family:${rFontFamily};font-size:${rFontSize/100}rem">` +
+                         t.textContent + 
+                         `</span>`;
+             rTextArray.push(tText);
+         }
+        textContent = rTextArray.join('');
+        return textContent
+    }
         
         /**
          * 无论是p还是table最终还是会到这个函数，用于取出最后的文字内容
          * @param {*} pDom 处理<w:p>标签对应的DOM,这个标签和tbl是互斥的
          * @return {string} htmlStr 返回table标签对应的html字符串  
          */
-         pFn = function(pDom){
+        var pFn = function(pDom){
             let rArray = getDirectDomsByTagName(pDom,'w:r');
             return '<p>'+rFn(rArray)+'</p>';
         }
@@ -147,7 +192,7 @@
          * @param {*} dom DOM子树根节点
          * @return htmlStr 字符串 
          */
-         wanderDom = function(dom){
+        var wanderDom = function(dom){
             let htmlStr = '',childrens = dom.children,len = childrens.length;
             for(let i=0; i<len;i++){
                 let children = childrens[i];
@@ -168,7 +213,7 @@
          * @param {*} xmlDoc 整个XML的DOM树
          * @return htmlStr 字符串 
          */
-         convert = function(xmlDoc){
+        let convert = function(xmlDoc){
             let dom = xmlDoc.getElementsByTagName('w:body')[0];
             return wanderDom(dom);
         }

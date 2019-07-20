@@ -36,7 +36,7 @@ var tblFn = function(tblDom){
     let trArray = getDirectDomsByTagName(tblDom,'w:tr'), len = trArray.length;
     for(let i = 0;i<len; i++){
         let tr = trArray[i];
-        tblText = tblText + trFn(tr);
+        tblText = tblText + trFn(tr,i,trArray);
     }
 
     tblText = tblText + tblRight;
@@ -45,16 +45,18 @@ var tblFn = function(tblDom){
 
 /**
  * @param trDom: 处理<w:tr>标签对应的DOM
+ * @param rNum:trDom所处的trArray的第几行
+ * @param trArray:表的所有行trArray
  * @return trText： 字符串，表示的是表格的一行的html字符串
  */
-var trFn = function(trDom){
+var trFn = function(trDom,rNum,trArray){
     let trStart = `<tr>`, 
         trEnd = `</tr>`, 
         trText = trStart;
     let tcArray = getDirectDomsByTagName(trDom,'w:tc'), len = tcArray.length;
     for(let i = 0;i<len; i++){
         let tc = tcArray[i];
-        trText = trText + tcFn(tc);
+        trText = trText + tcFn(tc,rNum, i,trArray);
     }
     trText = trText + trEnd;
     return trText;
@@ -62,11 +64,34 @@ var trFn = function(trDom){
 
 /**
  * @param tcDom: 处理<w:tc>标签对应的DOM
+ * @param rNum:trDom所处的trArray的第几行
+ * @param cNum: 传入的tcDom处于tr中tcArray的第几个，即第几列
+ * @param trArray:表的所有行trArray
  * @return tcText： 字符串，表示的是表格的一行的html字符串
  */
-var tcFn = function(tcDom){
-
-    let tdStart = `<td>`,
+var tcFn = function(tcDom,rNum,cNum,trArray){
+    let {colspan, vMerge, hasT} = getTcDomOptions(tcDom);
+    if(!hasT){
+        return ''
+    }
+    // 合并行
+    let rowspan;
+    if(vMerge === 'restart'){
+        let len = trArray.length;
+        rowspan =1;
+        for(let n = rNum+1;n<len;n++){
+            let  tcArray = getDirectDomsByTagName(trArray[n],'w:tc')
+            if(tcArray.length-1 < cNum) break;
+            let tcPrDom = getDirectDomsByTagName(tcArray[cNum],'w:tcPr')[0];
+            let vMergeDom = getDirectDomsByTagName(tcPrDom,'w:vMerge')[0];
+            if(vMergeDom && vMergeDom.getAttribute('w:val')!=='restart'){
+                rowspan++ 
+            }else{
+                break;
+            }
+        }
+    } 
+    let tdStart = `<td ${colspan?`colspan=${colspan}`:''} ${rowspan?`rowspan=${rowspan}`:''}>`, //合并列
         tdEnd = `</td>`,
         tcText = tdStart;
     
@@ -76,6 +101,25 @@ var tcFn = function(tcDom){
 }
 
 /**
+ * @param tcDom: 处理<w:tc>标签对应的DOM
+ * @return ： combinations:{colspan, vMerge, hasT} 对象，表示的是表格的一行的html字符串
+ */
+var getTcDomOptions = function(tcDom){
+    let tcPrDom = getDirectDomsByTagName(tcDom,'w:tcPr')[0];
+    let gridSpanDom = getDirectDomsByTagName(tcPrDom,'w:gridSpan')[0],
+        vMergeDom = getDirectDomsByTagName(tcPrDom,'w:vMerge')[0],
+        tDom = tcDom.getElementsByTagName('w:t');
+    let colspan = gridSpanDom?gridSpanDom.getAttribute('w:val'):'';
+    let vMerge = vMergeDom ?
+                    vMergeDom.getAttribute('w:val') ? vMergeDom.getAttribute('w:val') : '1'
+                    :
+                    '' ;
+    let hasT = tDom.length?true:false;
+    return {colspan,vMerge, hasT}
+}
+
+
+/**
  * @param {*} rArray 数组，<w:r>标签对应的DOM组成的数组
  * @return {string} textContent 返回table标签对应的html字符串  
  */
@@ -83,7 +127,6 @@ var rFn = function(rArray){
     var br = `<br>`,textContent = '',rTextArray = [];
     // In browser
     // for(let i =0; i<rArray.length;i++){
-    //     console.log(rArray.length)
     //     var r = rArray[i];
     //     var rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
     //     var rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
@@ -93,6 +136,8 @@ var rFn = function(rArray){
     //                 `</span>`;
     //     rTextArray.push(tText);
     // }
+
+    // in nodejs
     for(let i =0; i<rArray.length;i++){
         var tArray = rArray[i].getElementsByTagName('w:t');
         let tText = '';
