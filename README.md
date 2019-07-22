@@ -11,7 +11,7 @@ Beyond that, you can convert words with different font-family or font-size in a 
 
 ## **attention**
 If a line of words have different font-family or font-size in your .docx, it can not convert
-your .docx to html expectly in nodejs, but this can fix in the browsers such as chrome. because 
+your .docx to html expectly in nodejs, but this can be fixed in the browsers such as chrome. because 
 the npm package `jsdom` can not realize the `DOMParser`'s function perfectly. 
 So if you want to convert the font-family and font-size exactly, you can see how to use `word2html.js` in browsers!
 
