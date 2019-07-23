@@ -1,10 +1,10 @@
-let templateFormate = require('./template.js')
+const templateFormate = require('./template.js')
 let template;
 //解压缩word文件
-let admZip = require('adm-zip');
-let fs = require('fs');
-let path = require('path');
-let {convert} = require('./word2html.js');
+const admZip = require('adm-zip');
+const fs = require('fs');
+const path = require('path');
+const {convert} = require('./word2html.js');
 
 const jsdom = require("jsdom")
 const { JSDOM } = jsdom
@@ -45,7 +45,6 @@ let beginConvert = function(abspath){
       let contentXml = zip.readAsText("word/document.xml");
       let len = abspath.length-1;
       let name = abspath.slice(0,len-4) + ".html"
-      // console.log(name,'is ok')
       let res = main(contentXml);
       // 获取res
       let htmlStr = template.tl + res + template.tr; 

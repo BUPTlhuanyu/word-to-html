@@ -1,7 +1,7 @@
 
 
-let tdTextAlignDefault = 'left';
-let tdVerticalAlignDefault = 'top';
+const tdTextAlignDefault = 'left';
+const tdVerticalAlignDefault = 'top';
 
 /**
  * 
