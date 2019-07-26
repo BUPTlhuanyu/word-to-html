@@ -129,11 +129,15 @@ const rFn = function(rArray){
     // for(let i =0; i<rArray.length;i++){
     //     let r = rArray[i];
     //     let rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
-    //     let rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val');
+    //     let rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val')/100;
+    //     let rColor = r.getElementsByTagName('w:color')[0] && r.getElementsByTagName('w:color')[0].getAttribute('w:val');
+    //     let colorStr = rColor? ("color:#"+rColor+";") : "";
+    //     let fontFamilyStr = rFontFamily? ("font-family:"+rFontFamily+";") : "";
+    //     let fontSizeStr = rFontSize? ("font-size:"+rFontSize+"rem;") : "";
     //     let t = r.getElementsByTagName('w:t')[0];
-    //     let tText = `<span style="font-family:${rFontFamily};font-size:${rFontSize/100}rem">` +
+    //     let tText = '<span style="'+ colorStr + fontFamilyStr + fontSizeStr + '">' +
     //                 t.textContent + 
-    //                 `</span>`;
+    //                 "</span>";
     //     rTextArray.push(tText);
     // }
 
