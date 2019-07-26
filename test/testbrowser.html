@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><script type = ' text/javascript'> 
+let loadXML  =   function(xmlString){
+    var  xmlDoc = null ; 
+    if ( ! window.DOMParser  &&  window.ActiveXObject){   
+        var  xmlDomVersions  =  [ ' MSXML.2.DOMDocument.6.0 ' , ' MSXML.2.DOMDocument.3.0 ' , ' Microsoft.XMLDOM ' ];
+        for ( var  i = 0 ;i < xmlDomVersions.length;i ++ ){
+            try {
+                xmlDoc  =   new  ActiveXObject(xmlDomVersions[i]);
+                xmlDoc.async  =   false ;
+                xmlDoc.loadXML(xmlString);  
+                break ;
+            } catch (e){
+            }
+        }
+    }
+    else if (window.DOMParser  &&  document.implementation  &&  document.implementation.createDocument){
+        try {
+            domParser  =   new DOMParser();
+            xmlDoc  =  domParser.parseFromString(xmlString,  "application/xml" );
+        } catch (e){
+
+        }
+    }
+    else {
+        return   null ;
+    }
+    return  xmlDoc;
+}
+
+let getDirectDomsByTagName = function(dom, tagName){
+    let childs = Array.prototype.slice.call(dom.children);
+    let doms = childs.filter((item)=>{
+        return item.tagName === tagName
+    })
+    return doms
+}
+
+class Tbl{
+    constructor(tblDom){
+        this.tblDom = tblDom;
+    }
+
+    tblFn(){
+        let tblLeft = "<table><tbody>"
+        let tblRight = "</tbody></table>"
+        let tblText = tblLeft;
+
+        let trArray =  getDirectDomsByTagName(this.tblDom,'w:tr'), len = trArray.length;
+        this.trArray = trArray;
+        for(let i = 0;i<len; i++){
+            let tr = trArray[i];
+            tblText = tblText + this.trFn(tr,i);
+        }
+
+        tblText = tblText + tblRight;
+        return tblText; 
+    }
+
+    trFn(trDom,rNum){
+        let trStart = "<tr>", 
+            trEnd = "</tr>", 
+            trText = trStart;
+        let tcArray = getDirectDomsByTagName(trDom,'w:tc'), len = tcArray.length;
+        for(let i = 0;i<len; i++){
+            let tc = tcArray[i];
+            trText = trText + this.tcFn(tc,rNum, i);
+        }
+        trText = trText + trEnd;
+        return trText;
+    }
+
+    tcFn(tcDom,rNum,cNum){
+        let {colspan, vMerge, hasT} = this.getTcDomOptions(tcDom);
+        if(vMerge === '1' &&!hasT){
+            return ''
+        }
+        let rowspan;
+        if(vMerge === 'restart'){
+            let len = this.trArray.length;
+            rowspan =1;
+            for(let n = rNum+1;n<len;n++){
+                let  tcArray = getDirectDomsByTagName(this.trArray[n],'w:tc')
+                if(tcArray.length-1 < cNum) break;
+                let tcPrDom = getDirectDomsByTagName(tcArray[cNum],'w:tcPr')[0];
+                let vMergeDom = getDirectDomsByTagName(tcPrDom,'w:vMerge')[0];
+                if(vMergeDom && vMergeDom.getAttribute('w:val')!=='restart'){
+                    rowspan++ 
+                }else{
+                    break;
+                }
+            }
+        } 
+        let tdStart = "<td ";
+        let colspanStr = colspan?("colspan="+colspan):"";
+        let rowspanStr = rowspan?("rowspan="+rowspan):"";
+        tdStart = tdStart + colspanStr + " " + rowspanStr + '>';
+        let tdEnd = "</td>";
+        let tcText = tdStart;
+        
+        tcText = tcText + wanderDom(tcDom) + tdEnd;
+    
+        return tcText;
+    }
+
+    getTcDomOptions(tcDom){
+        let tcPrDom = getDirectDomsByTagName(tcDom,'w:tcPr')[0];
+        let gridSpanDom = getDirectDomsByTagName(tcPrDom,'w:gridSpan')[0],
+            vMergeDom = getDirectDomsByTagName(tcPrDom,'w:vMerge')[0],
+            tDom = tcDom.getElementsByTagName('w:t');
+        let colspan = gridSpanDom?gridSpanDom.getAttribute('w:val'):'';
+        let vMerge = vMergeDom ?
+                        vMergeDom.getAttribute('w:val') ? vMergeDom.getAttribute('w:val') : '1'
+                        :
+                        '' ;
+        let hasT = tDom.length?true:false;
+        return {colspan,vMerge, hasT}
+    }
+}
+
+ rFn = function(rArray){
+    let br = "<br>",textContent = "",rTextArray = [];
+    for(let i =0; i<rArray.length;i++){
+        let r = rArray[i];
+        let rFontFamily = r.getElementsByTagName('w:rFonts')[0].getAttribute('w:ascii');
+        let rFontSize = r.getElementsByTagName('w:sz')[0].getAttribute('w:val')/100;
+        let rColor = r.getElementsByTagName('w:color')[0] && r.getElementsByTagName('w:color')[0].getAttribute('w:val');
+        let colorStr = rColor? ("color:#"+rColor+";") : "";
+        let fontFamilyStr = rFontFamily? ("font-family:"+rFontFamily+";") : "";
+        let fontSizeStr = rFontSize? ("font-size:"+rFontSize+"rem;") : "";
+        let t = r.getElementsByTagName('w:t')[0];
+        let tText = '<span style="'+ colorStr + fontFamilyStr + fontSizeStr + '">' +
+                    t.textContent + 
+                    "</span>";
+        rTextArray.push(tText);
+    }
+    textContent = rTextArray.join('');
+    return textContent
+}
+
+
+class P{
+    constructor(pDom){
+        this.pDom = pDom
+    }
+
+    pFn(){
+        let rArray = getDirectDomsByTagName(this.pDom,'w:r');
+        return '<p>'+ rFn(rArray)+'</p>';
+    }
+}
+
+ wanderDom = function(dom){
+    let htmlStr = '',childrens = dom.children,len = childrens.length;
+    for(let i=0; i<len;i++){
+        let children = childrens[i];
+        let tagName = children.tagName;
+        switch(tagName){
+            case 'w:tbl': htmlStr= htmlStr + (new Tbl(children)).tblFn() ;break;
+            case 'w:p': htmlStr= htmlStr + (new P(children)).pFn() ;break;
+            default:break ;
+        }
+    }
+    return htmlStr;
+}
+
+let convert = function(xmlDoc){
+    let dom = xmlDoc.getElementsByTagName('w:body')[0];
+    return wanderDom(dom);
+}
+let res = convert(loadXML(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se wp14"><w:body><w:tbl><w:tblPr><w:tblW w:w="9870" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/></w:tblBorders><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="1776"/><w:gridCol w:w="772"/><w:gridCol w:w="2552"/><w:gridCol w:w="4770"/></w:tblGrid><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="70"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2548" w:type="dxa"/><w:gridSpan w:val="2"/><w:vMerge w:val="restart"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/><w:vAlign w:val="center"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>级别</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="7322" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>低视力及盲目分级标准</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="193"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2548" w:type="dxa"/><w:gridSpan w:val="2"/><w:vMerge/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="7322" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>最好矫正视力</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="70"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2548" w:type="dxa"/><w:gridSpan w:val="2"/><w:vMerge/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2552" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>最好矫正视力低于</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4770" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>最低矫正视力等于或优于</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="70"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="1776" w:type="dxa"/><w:vMerge w:val="restart"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/><w:vAlign w:val="center"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>低视力</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="772" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>1</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2552" w:type="dxa"/><w:vMerge w:val="restart"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>0.3</w:t></w:r></w:p><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>0.1</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4770" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:tbl><w:tblPr><w:tblStyle w:val="a4"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="2272"/><w:gridCol w:w="2272"/></w:tblGrid><w:tr w:rsidR="00921D6C" w:rsidTr="00921D6C"><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>1</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>2</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00921D6C" w:rsidTr="00921D6C"><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>3</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>4</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00921D6C" w:rsidTr="00921D6C"><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>5</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>6</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00921D6C" w:rsidTr="00921D6C"><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>7</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2272" w:type="dxa"/></w:tcPr><w:p w:rsidR="00921D6C" w:rsidRDefault="00921D6C" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>8</w:t></w:r></w:p></w:tc></w:tr></w:tbl><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr></w:p></w:tc></w:tr><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="66"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="1776" w:type="dxa"/><w:vMerge/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="772" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>2</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2552" w:type="dxa"/><w:vMerge/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4770" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>0.05（三米指数）</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="66"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="1776" w:type="dxa"/><w:vMerge w:val="restart"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/><w:vAlign w:val="center"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>盲目</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="772" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>3</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2552" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>0.05</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4770" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>0.02（一米指数）</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="70"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="1776" w:type="dxa"/><w:vMerge/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="772" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>4</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2552" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>0.02</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="4770" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>光感</w:t></w:r></w:p></w:tc></w:tr><w:tr w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidTr="00F4777A"><w:trPr><w:trHeight w:val="70"/><w:jc w:val="center"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="1776" w:type="dxa"/><w:vMerge/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="772" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>5</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="7322" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="auto"/></w:tcPr><w:p w:rsidR="00E12483" w:rsidRPr="00211A82" w:rsidRDefault="00E12483" w:rsidP="00F4777A"><w:pPr><w:spacing w:line="240" w:lineRule="exact"/><w:contextualSpacing/><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r w:rsidRPr="00211A82"><w:rPr><w:rFonts w:ascii="仿宋_GB2312" w:eastAsia="仿宋_GB2312" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>无光感</w:t></w:r></w:p></w:tc></w:tr></w:tbl><w:p w:rsidR="00432D58" w:rsidRDefault="00E3466E" w:rsidP="00432D58"><w:pPr><w:ind w:firstLineChars="200" w:firstLine="360"/><w:contextualSpacing/><w:rPr><w:rFonts w:ascii="华文彩云" w:eastAsia="华文彩云" w:hAnsi="宋体"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="华文彩云" w:eastAsia="华文彩云" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>啊啊啊啊啊啊啊啊啊啊啊</w:t></w:r><w:r w:rsidRPr="00F56CCE"><w:rPr><w:rFonts w:ascii="华文彩云" w:eastAsia="华文彩云" w:hAnsi="宋体" w:hint="eastAsia"/><w:color w:val="FF0000"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>啊啊啊啊啊啊啊</w:t></w:r><w:r><w:rPr><w:rFonts w:ascii="华文彩云" w:eastAsia="华文彩云" w:hAnsi="宋体" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>啊</w:t></w:r><w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/></w:p><w:p w:rsidR="00E3466E" w:rsidRPr="00E3466E" w:rsidRDefault="00E3466E" w:rsidP="00432D58"><w:pPr><w:ind w:firstLineChars="200" w:firstLine="360"/><w:contextualSpacing/><w:rPr><w:rFonts w:asciiTheme="minorEastAsia" w:eastAsiaTheme="minorEastAsia" w:hAnsiTheme="minorEastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorEastAsia" w:eastAsiaTheme="minorEastAsia" w:hAnsiTheme="minorEastAsia" w:hint="eastAsia"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊</w:t></w:r></w:p><w:sectPr w:rsidR="00E3466E" w:rsidRPr="00E3466E" w:rsidSect="005934BD"><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="737" w:right="567" w:bottom="737" w:left="567" w:header="851" w:footer="992" w:gutter="0"/><w:cols w:space="425"/><w:docGrid w:type="lines" w:linePitch="312"/></w:sectPr></w:body></w:document>`));console.log(res)</script></head><body></body></html>
