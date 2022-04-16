@@ -29,8 +29,8 @@ word2html.convert();
 ## event
 
 ### zipReady
-- callback <Function>
-    - zip <admZip>
+- callback `<Function>`
+    - zip `<admZip>`
 
 you can use `zip` to get any resource you need, like images; [adm-zip](https://www.npmjs.com/package/adm-zip)
 
