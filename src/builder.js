@@ -76,7 +76,7 @@ class Builder {
 
             this.ins.emit('htmlReady', htmlRes);
 
-            fs.writeFile(this.outputfile, htmlRes, (err) => {
+            fs.outputFile(this.outputfile, htmlRes, (err) => {
                 if (err) throw err;
                 console.log(`${this.outputfile} is ok`);
             });
