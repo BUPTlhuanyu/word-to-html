@@ -4,6 +4,7 @@
   "description": "convert docx files to html",
   "main": "src/index.js",
   "scripts": {
+    "debug": "node ./test/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -18,7 +19,7 @@
   "author": "lhuanyu",
   "license": "MIT",
   "dependencies": {
-    "adm-zip": "^0.4.13",
+    "adm-zip": "^0.5.9",
     "jsdom": "^15.1.1"
   },
   "files": [
