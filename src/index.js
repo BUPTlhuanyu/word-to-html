@@ -1,94 +1,83 @@
-const templateFormate = require("./template.js");
-let template;
-//解压缩word文件
-const admZip = require("adm-zip");
-const fs = require("fs");
-const path = require("path");
-const { convert } = require("./word2html.js");
-
-const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
-global.DOMParser = new JSDOM().window.DOMParser;
-
-let loadXML = function (xmlString) {
-    let xmlDoc = null;
-    domParser = new DOMParser();
-    xmlDoc = domParser.parseFromString(xmlString, "application/xml");
-    return xmlDoc;
-};
-
-let main = function (str) {
-    return convert(loadXML(str));
-};
-
 /**
- *
- * @param {*} abspath 字符串 绝对路径
+ * @file
  */
-let beginConvert = function (abspath) {
-    if (path.extname(abspath) !== ".docx") {
-        console.log(`can not convert ${abspath}, wrong ext !`);
-        return;
+const path = require('path')
+const fs = require('fs-extra');
+const klawSync = require('klaw-sync');
+const EventEmitter = require('events');
+const Builder = require('./builder.js');
+const templateFormate = require("./lib/template.js");
+
+class Word2Html extends EventEmitter{
+    constructor(targetPath, options = {}) {
+        super();
+        // target
+        const fileInfo = this.getFileInfo(targetPath);
+        this.targetDirPath = fileInfo.targetDirPath;
+        this.targetFilePaths = fileInfo.targetFilePaths;
+        // output
+        this.outputDir = options.outputDir || this.targetDirPath;
+        // template
+        this.template = this.initTemplate(options);
+        // listener
+        this.initLifecycle();
     }
-    fs.open(abspath, "r", (err, fd) => {
-        if (err) {
-            if (err.code === "ENOENT") {
-                console.error(`${abspath} is not exist`);
-                return;
-            }
 
-            throw err;
-        }
-        //解压缩
-        const zip = new admZip(abspath);
-        const entries = zip.getEntries();
-        for (let entry of entries) {
-            collectImgs(entry);
-        }
-        //将document.xml(解压缩后得到的文件)读取为text内容
-        let contentXml = zip.readAsText("word/document.xml");
-        let len = abspath.length - 1;
-        let name = abspath.slice(0, len - 4) + ".html";
-        let res = main(contentXml);
-        // 获取res
-        let htmlStr = template.tl + res + template.tr;
-        fs.writeFile(name, htmlStr, function (err) {
-            if (err) throw err;
-            console.log(`${process.cwd() + path.delimiter + name} is ok`);
-        });
-    });
-};
+    initLifecycle() {
+        // this.on('zipReady', res => {
+        //     console.log(res);
+        // });
+        // this.on('htmlReady', res => {
+        //     console.log(res);
+        // });
+    }
 
-function collectImgs(entry) {
-    const PICTURE_EXPRESSION = /\.(png|jpe?g|gif|svg)(\?.*)?$/;
-    const picReg = new RegExp(PICTURE_EXPRESSION);
-    if (picReg.test(entry.name)) {
-        let name = entry.name;
-        fs.writeFile(
-            path.dirname(name) + path.sep + entry.name,
-            entry.getData(),
-            function (err) {
-                if (err) throw err;
-                console.log(`${name} is generated`);
+    /**
+     * 获取传入目标路径的信息：所在文件夹路径，文件名称
+     * @param {*} targetPath
+     * @returns
+     */
+    getFileInfo(targetPath) {
+        const targetFilePaths = [];
+        let targetDirPath = '';
+        const stats = fs.statSync(targetPath);
+        if (stats.code === 'ENOENT') {
+            throw new Error(`${targetPath} is not a right path`);
+        }
+        if (stats.isDirectory()) {
+            const filter = item => {
+              const basename = path.extname(item.path)
+              return basename === '.docx';
             }
-        );
+            const paths = klawSync(targetPath, {filter});
+            targetFilePaths.push(...paths);
+        } else {
+            if (path.extname(targetPath) !== '.docx') {
+                throw new Error(`can not convert ${targetPath}, wrong ext !`);
+            }
+            targetDirPath = path.dirname(targetPath);
+            targetFilePaths.push(targetPath);
+        }
+        return {
+            targetFilePaths,
+            targetDirPath
+        }
+    }
+
+    initTemplate(options) {
+        return templateFormate(options);
+    }
+
+    convert() {
+        for (let targetFile of this.targetFilePaths) {
+            const builder = new Builder(
+                targetFile,
+                this.outputDir,
+                this
+            );
+            builder.convert();
+        }
     }
 }
 
-/**
- *
- * @param {*} abspath 绝对路径字符串或者绝对路径数组
- * @param {*} options 暂时只支持表格td的内容水平垂直对齐的配置，比如{tdTextAlign:'center',tdVerticalAlign:'top'}
- */
-let word2html = function (abspath, options = {}) {
-    template = templateFormate(options);
-    if (Array.isArray(abspath)) {
-        abspath.map((item) => {
-            beginConvert(item, options);
-        });
-    } else if (typeof abspath === "string") {
-        beginConvert(abspath, options);
-    }
-};
-
-module.exports = word2html;
+module.exports = Word2Html;

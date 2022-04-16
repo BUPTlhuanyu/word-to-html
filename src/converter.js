@@ -1,17 +1,18 @@
-// amd-zip将docx格式的文件转换成xml的规则是：
-// table规则：
-// <w:tbl></w:tbl>表示整个表格                                                          tblFn:需要<table>包裹
-// <w:tr></w:tr>表示表格的一行                                                          trFn:需要<tr>包裹
-// <w:tc></w:tc>表示表格某一行的一列                                                    tcFn:需要<td></td>包裹
-// 在<w:tc></w:tc>这一列中，对应的word中有多少个回车就会生成多少个<w:p>，
-// 在<w:p></w:p>中，对应的word中有多少个软回车（向下的箭头↓），就会有多少<w:r></w:r>
-// 一般？：在<w:r></w:r>中的<w:t></w:t>就包裹了需要的文字内容
-// 这里需要注意的一个问题是：特殊符号比如上标也会单独成为一个<w:r></w:r>
-
-// 总之遍历到标签<w:t></w:t>则表示结束
-
-let imgArr,
-    imgMap = new Map();
+/**
+ * @file
+ * amd-zip将docx格式的文件转换成xml的规则是：
+ * table规则：
+ *
+ * <w:tbl></w:tbl>表示整个表格                                                          tblFn:需要<table>包裹
+ * <w:tr></w:tr>表示表格的一行                                                          trFn:需要<tr>包裹
+ * <w:tc></w:tc>表示表格某一行的一列                                                    tcFn:需要<td></td>包裹
+ * 在<w:tc></w:tc>这一列中，对应的word中有多少个回车就会生成多少个<w:p>，
+ * 在<w:p></w:p>中，对应的word中有多少个软回车（向下的箭头↓），就会有多少<w:r></w:r>
+ * 一般？：在<w:r></w:r>中的<w:t></w:t>就包裹了需要的文字内容
+ * 这里需要注意的一个问题是：特殊符号比如上标也会单独成为一个<w:r></w:r>
+ *
+ * 总之遍历到标签<w:t></w:t>则表示结束
+ */
 
 /**
  * 获取元素下某一层某个tagName的所有元素
@@ -26,8 +27,9 @@ const getDirectDomsByTagName = function (dom, tagName) {
 };
 
 class Tbl {
-    constructor(tblDom) {
+    constructor(tblDom, context) {
         this.tblDom = tblDom;
+        this.context = context;
     }
     /**
      *
@@ -108,7 +110,7 @@ class Tbl {
             tdEnd = `</td>`,
             tcText = tdStart;
 
-        tcText = tcText + wanderDom(tcDom) + tdEnd;
+        tcText = tcText + this.context.converter.wanderDom(tcDom) + tdEnd;
 
         return tcText;
     }
@@ -136,14 +138,14 @@ class Tbl {
  * @param {*} r 单个文字节点对象
  * @return {string} textContent 返回文字对应的标签字符串
  */
-const rFn = function (rArray) {
+const rFn = function (rArray, context) {
     let textContent = "",
         rTextArray = [];
 
     for (let i = 0; i < rArray.length; i++) {
         let r = rArray[i];
         if (r.getElementsByTagName("w:drawing").length > 0) {
-            // rTextArray.push(imgFn(r));
+            rTextArray.push(imgFn(r, context));
         } else {
             rTextArray.push(fontFn(r));
         }
@@ -156,18 +158,14 @@ const rFn = function (rArray) {
  * @param {*} r 单个图片节点对象
  * @return {string} textContent 返回图片对应的标签字符串
  */
-const imgFn = function (r) {
-    let src,
-        descr = r.getElementsByTagName("pic:cNvPr")[0].getAttribute("name");
-    console.log("descr", descr);
-    let desrcImg = imgMap.get(descr);
-    if (desrcImg) {
-        src = desrcImg;
-    } else {
-        src = imgArr.shift();
-        imgMap.set(descr, src);
+const imgFn = function (r, context) {
+    if (!context || !Array.isArray(context.images)) {
+        return '';
     }
-    let tText = `<br /><img src="./${src}" style="width: 100%"/>`;
+    // const descr = r.getElementsByTagName("pic:cNvPr")[0].getAttribute("name");
+    const src = context.images.pop();
+    // console.log("descr", descr);
+    let tText = `<br /><img src="${src}" style="width: 100%"/>`;
     return tText;
 };
 
@@ -200,8 +198,9 @@ const fontFn = function (r) {
 };
 
 class P {
-    constructor(pDom) {
+    constructor(pDom, context) {
         this.pDom = pDom;
+        this.context = context;
     }
     /**
      * 无论是p还是table最终还是会到这个函数，用于取出最后的文字内容
@@ -210,47 +209,56 @@ class P {
      */
     pFn() {
         let rArray = getDirectDomsByTagName(this.pDom, "w:r");
-        return "<p>" + rFn(rArray) + "</p>";
+        return "<p>" + rFn(rArray, this.context) + "</p>";
     }
 }
 
-/**
- *
- * @param {*} dom DOM子树根节点
- * @return htmlStr 字符串
- */
-const wanderDom = function (dom) {
-    let htmlStr = "",
-        childrens = dom.children,
-        len = childrens.length;
-    for (let i = 0; i < len; i++) {
-        let children = childrens[i];
-        let tagName = children.tagName;
-        switch (tagName) {
-            case "w:tbl":
-                htmlStr = htmlStr + new Tbl(children).tblFn();
-                break;
-            case "w:p":
-                htmlStr = htmlStr + new P(children).pFn();
-                break;
-            default:
-                break;
+
+
+class Converter {
+    constructor(xmlDoc, images) {
+        this.context = {
+            converter: this,
+            images
         }
+        this.xmlDoc = xmlDoc;
     }
-    return htmlStr;
-};
 
-/**
- * 创建一个Wander类的实例，然后开始执行这个实例的start方法开始执行转换
- * @param {*} xmlDoc 整个XML的DOM树
- * @return htmlStr 字符串
- */
-let convert = function (xmlDoc) {
-    let dom = xmlDoc.getElementsByTagName("w:body")[0];
-    // imgArr = process.env.imagesArrStr.split(';')
-    return wanderDom(dom);
-};
+    /**
+     * 创建一个Wander类的实例，然后开始执行这个实例的start方法开始执行转换
+     * @param {*} xmlDoc 整个XML的DOM树
+     * @return htmlStr 字符串
+     */
+    convert() {
+        let dom = this.xmlDoc.getElementsByTagName("w:body")[0];
+        return this.wanderDom(dom);
+    }
 
-module.exports = {
-    convert,
-};
+    /**
+     *
+     * @param {*} dom DOM子树根节点
+     * @return htmlStr 字符串
+     */
+    wanderDom(body) {
+        let htmlStr = "",
+        childrens = body.children,
+        len = childrens.length;
+        for (let i = 0; i < len; i++) {
+            let children = childrens[i];
+            let tagName = children.tagName;
+            switch (tagName) {
+                case "w:tbl":
+                    htmlStr = htmlStr + new Tbl(children, this.context).tblFn();
+                    break;
+                case "w:p":
+                    htmlStr = htmlStr + new P(children, this.context).pFn();
+                    break;
+                default:
+                    break;
+            }
+        }
+        return htmlStr;
+    }
+}
+
+module.exports = Converter;
