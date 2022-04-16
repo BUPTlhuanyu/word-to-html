@@ -159,13 +159,26 @@ const rFn = function (rArray, context) {
  * @return {string} textContent 返回图片对应的标签字符串
  */
 const imgFn = function (r, context) {
-    if (!context || !Array.isArray(context.images)) {
+    // get rId
+    const blips = r.getElementsByTagName('a:blip') || [];
+    if (blips.length === 0) {
+        return '';
+    }
+
+    const rId = blips[0].getAttribute("r:embed");
+
+    if (!context || !context.images) {
+        return '';
+    }
+
+    const imgData = context.images.get(rId);
+
+    if (!imgData) {
         return '';
     }
     // const descr = r.getElementsByTagName("pic:cNvPr")[0].getAttribute("name");
-    const src = context.images.pop();
     // console.log("descr", descr);
-    let tText = `<br /><img src="${src}" style="width: 100%"/>`;
+    let tText = `<br /><img src="${imgData.path}" style="width: 100%"/>`;
     return tText;
 };
 

@@ -32,7 +32,7 @@ class Builder {
 
     getXmlDocument(xmlString) {
         const domParser = new DOMParser();
-        return domParser.parseFromString(xmlString, "application/xml");;
+        return domParser.parseFromString(xmlString, "application/xml");
     }
 
     /**
@@ -41,8 +41,8 @@ class Builder {
      * @param {*} file
      * @returns
      */
-    collectImgs(zip, file) {
-        return collectImgs(zip, file);
+    collectImgs(zip, file, DOMParser) {
+        return collectImgs(zip, file, DOMParser);
     }
 
     /**
@@ -65,13 +65,13 @@ class Builder {
             }
 
             this.zip = this.zipFile();
-            this.imagePaths = this.collectImgs(this.zip, this.outputfile);
-            this.ins.emit('zipReady', this.file);
+            this.imgMap = this.collectImgs(this.zip, this.outputfile, DOMParser);
+            this.ins.emit('zipReady', this.zip, this.file);
 
             const xmlContent = this.getXmlStr(this.zip);
             const xmlDocument = this.getXmlDocument(xmlContent);
 
-            const htmlContent = new Converter(xmlDocument, this.imagePaths).convert();
+            const htmlContent = new Converter(xmlDocument, this.imgMap).convert();
             const htmlRes = this.template.tl + htmlContent + this.template.tr;
 
             this.ins.emit('htmlReady', htmlRes);

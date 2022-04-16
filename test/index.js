@@ -9,4 +9,7 @@ const word2html = new Word2html(
         outputDir: path.resolve(__dirname, 'temp')
     }
 );
+word2html.on('zipReady', zip => {
+    zip.extractAllTo(path.resolve(__dirname, 'temp/entryfiles'));
+});
 word2html.convert();

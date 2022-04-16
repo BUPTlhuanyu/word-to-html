@@ -1,9 +1,5 @@
 # word-to-html
 
-TODO:
-- use tapple to provide hooks for user to handle html string;
-- images is not right;
-
 ## feature
 - images
 - font-size color/style
@@ -47,7 +43,10 @@ const word2html = new Word2html(
     }
 );
 word2html('zipReady', (zip) => {
+    // https://github.com/cthackers/adm-zip/wiki/ADM-ZIP#introduction
     zip.getEntries();
+    // extractAllTo
+    zip.extractAllTo(path.resolve(__dirname, 'temp/entryfiles'));
 });
 word2html.convert();
 ```
