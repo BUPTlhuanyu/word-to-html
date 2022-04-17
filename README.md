@@ -42,7 +42,7 @@ const word2html = new Word2html(
         outputDir: path.resolve(__dirname, 'temp')
     }
 );
-word2html('zipReady', (zip) => {
+word2html.on('zipReady', (zip) => {
     // https://github.com/cthackers/adm-zip/wiki/ADM-ZIP#introduction
     zip.getEntries();
     // extractAllTo
