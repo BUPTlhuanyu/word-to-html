@@ -1,6 +1,8 @@
 # word-to-html
 
-![html]('./test/example1-1.png')
+<div align=center>
+    <img src="./test/example1-1.png"/>
+</div>
 
 ## feature
 - images
