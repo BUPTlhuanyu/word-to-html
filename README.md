@@ -8,12 +8,13 @@
 - images
 - font-size color/style
 - table
+- link
 
 
 ## example
 ```javascript
 var path = require("path");
-var Word2html = require("../src/index.js");
+var Word2html = require("word-to-html");
 //Word document's absolute path
 var absPath = path.join(__dirname, "test.docx");
 
@@ -36,7 +37,7 @@ you can use `zip` to get any resource you need, like images; [adm-zip](https://w
 
 ```javascript
 var path = require("path");
-var Word2html = require("../src/index.js");
+var Word2html = require("word-to-html");
 //Word document's absolute path
 var absPath = path.join(__dirname, "test.docx");
 

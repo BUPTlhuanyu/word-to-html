@@ -1,3 +1,6 @@
+# 3.0.3
+- [fix] font err
+
 # 3.0.2
 - [fix] zipReady event handler do not have zip instance
 - [fix] image not right
